@@ -1,0 +1,10 @@
+# 只上線播放器需要的檔案（GitHub Pages：smallda12/haohao-daily-routine）
+# 其餘（舊版、slides、成品影片、字型、腳本、zip）一律不進 git
+/*
+!/.gitignore
+!/index.html
+!/教材播放器.html
+!/頁面截圖/
+!/assets/
+/assets/*
+!/assets/audio/
