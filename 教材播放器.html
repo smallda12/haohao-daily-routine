@@ -11,6 +11,8 @@
     --primary-dark:#3573B5;
     --accent:#FF8C61;
     --accent-dark:#E8703D;
+    --reveal:#2E9E5B;
+    --reveal-dark:#25804A;
     --text:#3A3A3A;
     --dot:#D8D8D8;
     --dot-active:#4A90D9;
@@ -50,6 +52,25 @@
     border-radius:999px;
     box-shadow:0 2px 6px rgba(0,0,0,.10);
   }
+  /* 學習／測驗切換 */
+  .mode-switch{
+    display:flex;gap:4px;
+    background:#fff;
+    padding:4px;
+    border-radius:999px;
+    box-shadow:0 2px 6px rgba(0,0,0,.10);
+  }
+  .mode-btn{
+    border:none;background:transparent;
+    font-family:inherit;font-weight:bold;
+    font-size:clamp(14px,2.4vh,22px);
+    color:var(--primary-dark);
+    padding:4px 18px;
+    min-height:clamp(36px,4.8vh,46px);
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .mode-btn.active{background:var(--primary);color:#fff;}
   .stage{
     flex:1 1 auto;
     min-height:0;
@@ -72,6 +93,24 @@
     width:100%;height:100%;object-fit:contain;
     background:#fff;
     display:block;
+  }
+  /* 測驗模式：按「聽答案」後才出現的文字 */
+  .answer{
+    display:none;
+    flex:0 0 auto;
+    min-height:1.3em;
+    font-size:clamp(28px,5.5vh,56px);
+    font-weight:bold;
+    color:var(--reveal-dark);
+    text-align:center;
+    line-height:1.3;
+    visibility:hidden;
+  }
+  body.quiz .answer{display:block;}
+  .answer.show{visibility:visible;animation:pop .35s ease-out;}
+  @keyframes pop{
+    0%{transform:scale(.6);opacity:0;}
+    100%{transform:scale(1);opacity:1;}
   }
   .dots{
     display:flex;gap:7px;flex-wrap:wrap;justify-content:center;
@@ -116,6 +155,8 @@
     font-size:clamp(16px,2.7vh,26px);
   }
   .btn-play:hover{background:var(--accent-dark);}
+  .btn-play.reveal{background:var(--reveal);}
+  .btn-play.reveal:hover{background:var(--reveal-dark);}
   .btn-play.playing{animation:pulse 1s infinite;}
   @keyframes pulse{
     0%,100%{box-shadow:0 4px 10px rgba(0,0,0,.15);}
@@ -126,7 +167,11 @@
 <body>
   <header>
     <h1>好好生活常規</h1>
-    <div class="page-count" id="pageCount">1 / 15</div>
+    <div class="mode-switch" role="group" aria-label="切換模式">
+      <button class="mode-btn active" id="learnBtn" type="button">📖 學習</button>
+      <button class="mode-btn" id="quizBtn" type="button">📝 測驗</button>
+    </div>
+    <div class="page-count" id="pageCount">1 / 26</div>
   </header>
 
   <div class="stage">
@@ -134,6 +179,8 @@
       <img id="pageImg" src="" alt="">
     </div>
   </div>
+
+  <div class="answer" id="answer" aria-live="polite"></div>
 
   <div class="dots" id="dots"></div>
 
@@ -146,37 +193,41 @@
   <audio id="audioPlayer" preload="auto"></audio>
 
   <script>
+  // img：有字幕的頁面（學習模式、測驗揭曉後）；plain：同一張圖的無字版（測驗出題用）
+  // noQuiz：開場與結尾頁不出題
   const pages = [
-    {img:'頁面截圖/000_我會這樣做.png', audio:'assets/audio/p00.mp3', label:'我會這樣做'},
-    {img:'頁面截圖/001_我要好好坐校車.png', audio:'assets/audio/p01.mp3', label:'我要好好坐校車'},
-    {img:'頁面截圖/002_我要好好進教室.png', audio:'assets/audio/p02.mp3', label:'我要好好進教室'},
-    {img:'頁面截圖/003_我要好好上廁所.png', audio:'assets/audio/p03.mp3', label:'我要好好上廁所'},
-    {img:'頁面截圖/004_我要好好運動.png', audio:'assets/audio/p04.mp3', label:'我要好好運動'},
-    {img:'頁面截圖/005_我要好好騎腳踏車.png', audio:'assets/audio/p05.mp3', label:'我要好好騎腳踏車'},
-    {img:'頁面截圖/006_我要好好上課.png', audio:'assets/audio/p06.mp3', label:'我要好好上課'},
-    {img:'頁面截圖/007_我要好好吃點心.png', audio:'assets/audio/p07.mp3', label:'我要好好吃點心'},
-    {img:'頁面截圖/008_我要好好看電視.png', audio:'assets/audio/p08.mp3', label:'我要好好看電視'},
-    {img:'頁面截圖/009_我要好好寫字.png', audio:'assets/audio/p09.mp3', label:'我要好好寫字'},
-    {img:'頁面截圖/010_我要好好說話.png', audio:'assets/audio/p10.mp3', label:'我要好好說話'},
-    {img:'頁面截圖/011_我要好好操作.png', audio:'assets/audio/p11.mp3', label:'我要好好操作'},
-    {img:'頁面截圖/012_我要好好喝水.png', audio:'assets/audio/p12.mp3', label:'我要好好喝水'},
-    {img:'頁面截圖/013_我要好好走路.png', audio:'assets/audio/p13.mp3', label:'我要好好走路'},
-    {img:'頁面截圖/014_我要好好練習.png', audio:'assets/audio/p14.mp3', label:'我要好好練習'},
-    {img:'頁面截圖/015_我要好好坐好.png', audio:'assets/audio/p15.mp3', label:'我要好好坐好'},
-    {img:'頁面截圖/016_我要好好休息.png', audio:'assets/audio/p16.mp3', label:'我要好好休息'},
-    {img:'頁面截圖/017_我要好好吃飯.png', audio:'assets/audio/p17.mp3', label:'我要好好吃飯'},
-    {img:'頁面截圖/018_我要好好喝湯.png', audio:'assets/audio/p18.mp3', label:'我要好好喝湯'},
-    {img:'頁面截圖/019_我要好好刷牙.png', audio:'assets/audio/p19.mp3', label:'我要好好刷牙'},
-    {img:'頁面截圖/020_我要好好睡覺.png', audio:'assets/audio/p20.mp3', label:'我要好好睡覺'},
-    {img:'頁面截圖/021_我要好好參與活動.png', audio:'assets/audio/p21.mp3', label:'我要好好參與活動'},
-    {img:'頁面截圖/022_我要好好收書包.png', audio:'assets/audio/p22.mp3', label:'我要好好收書包'},
-    {img:'頁面截圖/023_我要好好放學.png', audio:'assets/audio/p23.mp3', label:'我要好好放學'},
-    {img:'頁面截圖/024_我要好好控制.png', audio:'assets/audio/p24.mp3', label:'我要好好控制'},
-    {img:'頁面截圖/025_我最棒.png', audio:'assets/audio/p25.mp3', label:'我最棒'},
+    {img:'頁面截圖/000_我會這樣做.png', plain:'assets/images/p00.png', audio:'assets/audio/p00.mp3', label:'我會這樣做', noQuiz:true},
+    {img:'頁面截圖/001_我要好好坐校車.png', plain:'assets/images/p01.png', audio:'assets/audio/p01.mp3', label:'我要好好坐校車'},
+    {img:'頁面截圖/002_我要好好進教室.png', plain:'assets/images/p02.png', audio:'assets/audio/p02.mp3', label:'我要好好進教室'},
+    {img:'頁面截圖/003_我要好好上廁所.png', plain:'assets/images/p03.png', audio:'assets/audio/p03.mp3', label:'我要好好上廁所'},
+    {img:'頁面截圖/004_我要好好運動.png', plain:'assets/images/p04.png', audio:'assets/audio/p04.mp3', label:'我要好好運動'},
+    {img:'頁面截圖/005_我要好好騎腳踏車.png', plain:'assets/images/p05.png', audio:'assets/audio/p05.mp3', label:'我要好好騎腳踏車'},
+    {img:'頁面截圖/006_我要好好上課.png', plain:'assets/images/p06.png', audio:'assets/audio/p06.mp3', label:'我要好好上課'},
+    {img:'頁面截圖/007_我要好好吃點心.png', plain:'assets/images/p07.png', audio:'assets/audio/p07.mp3', label:'我要好好吃點心'},
+    {img:'頁面截圖/008_我要好好看電視.png', plain:'assets/images/p08.png', audio:'assets/audio/p08.mp3', label:'我要好好看電視'},
+    {img:'頁面截圖/009_我要好好寫字.png', plain:'assets/images/p09.png', audio:'assets/audio/p09.mp3', label:'我要好好寫字'},
+    {img:'頁面截圖/010_我要好好說話.png', plain:'assets/images/p10.png', audio:'assets/audio/p10.mp3', label:'我要好好說話'},
+    {img:'頁面截圖/011_我要好好操作.png', plain:'assets/images/p11.png', audio:'assets/audio/p11.mp3', label:'我要好好操作'},
+    {img:'頁面截圖/012_我要好好喝水.png', plain:'assets/images/p12.png', audio:'assets/audio/p12.mp3', label:'我要好好喝水'},
+    {img:'頁面截圖/013_我要好好走路.png', plain:'assets/images/p13.png', audio:'assets/audio/p13.mp3', label:'我要好好走路'},
+    {img:'頁面截圖/014_我要好好練習.png', plain:'assets/images/p14.png', audio:'assets/audio/p14.mp3', label:'我要好好練習'},
+    {img:'頁面截圖/015_我要好好坐好.png', plain:'assets/images/p15.png', audio:'assets/audio/p15.mp3', label:'我要好好坐好'},
+    {img:'頁面截圖/016_我要好好休息.png', plain:'assets/images/p16.png', audio:'assets/audio/p16.mp3', label:'我要好好休息'},
+    {img:'頁面截圖/017_我要好好吃飯.png', plain:'assets/images/p17.png', audio:'assets/audio/p17.mp3', label:'我要好好吃飯'},
+    {img:'頁面截圖/018_我要好好喝湯.png', plain:'assets/images/p18.png', audio:'assets/audio/p18.mp3', label:'我要好好喝湯'},
+    {img:'頁面截圖/019_我要好好刷牙.png', plain:'assets/images/p19.png', audio:'assets/audio/p19.mp3', label:'我要好好刷牙'},
+    {img:'頁面截圖/020_我要好好睡覺.png', plain:'assets/images/p20.png', audio:'assets/audio/p20.mp3', label:'我要好好睡覺'},
+    {img:'頁面截圖/021_我要好好參與活動.png', plain:'assets/images/p21.png', audio:'assets/audio/p21.mp3', label:'我要好好參與活動'},
+    {img:'頁面截圖/022_我要好好收書包.png', plain:'assets/images/p22.png', audio:'assets/audio/p22.mp3', label:'我要好好收書包'},
+    {img:'頁面截圖/023_我要好好放學.png', plain:'assets/images/p23.png', audio:'assets/audio/p23.mp3', label:'我要好好放學'},
+    {img:'頁面截圖/024_我要好好控制.png', plain:'assets/images/p24.png', audio:'assets/audio/p24.mp3', label:'我要好好控制'},
+    {img:'頁面截圖/025_我最棒.png', plain:'assets/images/p25.png', audio:'assets/audio/p25.mp3', label:'我最棒', noQuiz:true},
   ];
 
+  let mode = 'learn';      // 'learn'＝學習（看字、自動唸）；'quiz'＝測驗（先看無字圖，按鈕才唸＋出字）
+  let list = pages;        // 目前這一輪的順序（測驗模式會打亂）
   let current = 0;
-  let audioUnlocked = false;
+  let revealed = false;
 
   const pageImg = document.getElementById('pageImg');
   const pageCount = document.getElementById('pageCount');
@@ -184,6 +235,9 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const playBtn = document.getElementById('playBtn');
+  const learnBtn = document.getElementById('learnBtn');
+  const quizBtn = document.getElementById('quizBtn');
+  const answerEl = document.getElementById('answer');
   const audioPlayer = document.getElementById('audioPlayer');
   const stage = document.querySelector('.stage');
   const frame = document.querySelector('.frame');
@@ -198,15 +252,27 @@
     frame.style.height = h + 'px';
   }
   window.addEventListener('resize', fitFrame);
-  fitFrame();
 
-  pages.forEach((_, i) => {
-    const dot = document.createElement('div');
-    dot.className = 'dot';
-    dot.addEventListener('click', () => goTo(i));
-    dotsWrap.appendChild(dot);
-  });
-  const dotEls = Array.from(dotsWrap.children);
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  let dotEls = [];
+  function buildDots(){
+    dotsWrap.innerHTML = '';
+    list.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.addEventListener('click', () => goTo(i));
+      dotsWrap.appendChild(dot);
+    });
+    dotEls = Array.from(dotsWrap.children);
+  }
 
   function updateDots(){
     dotEls.forEach((d,i)=> d.classList.toggle('active', i===current));
@@ -217,38 +283,89 @@
     const p = audioPlayer.play();
     if (p !== undefined){
       p.then(()=>{
-        audioUnlocked = true;
         playBtn.classList.add('playing');
       }).catch(()=>{
-        // 瀏覽器擋自動播放時靜靜失敗，按「重複播放」按鈕還是能手動播放
+        // 瀏覽器擋自動播放時靜靜失敗，按按鈕還是能手動播放
       });
     }
   }
 
   function render(autoplay){
-    const page = pages[current];
-    pageImg.src = page.img;
-    pageImg.alt = page.label;
-    pageCount.textContent = (current+1) + ' / ' + pages.length;
+    const page = list[current];
+    revealed = false;
+    playBtn.classList.remove('playing');
+    if (mode === 'quiz'){
+      pageImg.src = page.plain;
+      pageImg.alt = '這張圖在做什麼？';
+      pageCount.textContent = '第 ' + (current+1) + ' 題 / ' + list.length;
+      answerEl.textContent = page.label;
+      answerEl.classList.remove('show');
+      playBtn.textContent = '🔊 聽答案';
+      playBtn.classList.add('reveal');
+      prevBtn.textContent = '◀ 上一題';
+      nextBtn.textContent = '下一題 ▶';
+      new Image().src = page.img;   // 先載好有字版，揭曉時不必等
+    } else {
+      pageImg.src = page.img;
+      pageImg.alt = page.label;
+      pageCount.textContent = (current+1) + ' / ' + list.length;
+      playBtn.textContent = '🔊 重複播放';
+      playBtn.classList.remove('reveal');
+      prevBtn.textContent = '◀ 上一頁';
+      nextBtn.textContent = '下一頁 ▶';
+    }
     audioPlayer.src = page.audio;
     prevBtn.disabled = current === 0;
-    nextBtn.disabled = current === pages.length - 1;
+    nextBtn.disabled = current === list.length - 1;
     updateDots();
-    playBtn.classList.remove('playing');
     if (autoplay){
       playCurrentAudio();
     }
   }
 
+  // 測驗：第一次按＝揭曉（換成有字的圖＋下方大字＋唸出答案），之後再按＝再聽一次
+  function reveal(){
+    const page = list[current];
+    if (!revealed){
+      revealed = true;
+      pageImg.src = page.img;
+      pageImg.alt = page.label;
+      answerEl.classList.add('show');
+      playBtn.textContent = '🔊 再聽一次';
+    }
+    playCurrentAudio();
+  }
+
   function goTo(i){
-    if (i<0 || i>=pages.length) return;
+    if (i<0 || i>=list.length) return;
     current = i;
-    render(true);
+    render(mode === 'learn');   // 測驗模式換題時不自動唸，免得先聽到答案
+  }
+
+  function setMode(m){
+    mode = m;
+    document.body.classList.toggle('quiz', m === 'quiz');
+    learnBtn.classList.toggle('active', m === 'learn');
+    quizBtn.classList.toggle('active', m === 'quiz');
+    audioPlayer.pause();
+    list = m === 'quiz' ? shuffle(pages.filter(p => !p.noQuiz)) : pages;
+    current = 0;
+    buildDots();
+    fitFrame();
+    render(m === 'learn');
+    history.replaceState(null, '', m === 'quiz' ? '#quiz' : location.pathname + location.search);
+  }
+
+  function onPlay(){
+    if (mode === 'quiz') reveal();
+    else playCurrentAudio();
   }
 
   prevBtn.addEventListener('click', ()=> goTo(current-1));
   nextBtn.addEventListener('click', ()=> goTo(current+1));
-  playBtn.addEventListener('click', ()=> { audioUnlocked = true; playCurrentAudio(); });
+  playBtn.addEventListener('click', onPlay);
+  learnBtn.addEventListener('click', ()=> { if (mode !== 'learn') setMode('learn'); });
+  quizBtn.addEventListener('click', ()=> setMode('quiz'));   // 測驗中再按一次＝重新打亂出題
 
   audioPlayer.addEventListener('ended', ()=>{
     playBtn.classList.remove('playing');
@@ -257,10 +374,16 @@
   document.addEventListener('keydown', (e)=>{
     if (e.key === 'ArrowRight') goTo(current+1);
     else if (e.key === 'ArrowLeft') goTo(current-1);
-    else if (e.key === ' '){ e.preventDefault(); playCurrentAudio(); }
+    else if (e.key === ' '){ e.preventDefault(); onPlay(); }
   });
 
-  render(true);
+  // 同一頁裡改網址的 #quiz（例如從書籤點進來）也要切換
+  window.addEventListener('hashchange', ()=> {
+    const want = location.hash === '#quiz' ? 'quiz' : 'learn';
+    if (want !== mode) setMode(want);
+  });
+
+  setMode(location.hash === '#quiz' ? 'quiz' : 'learn');
   </script>
 </body>
 </html>

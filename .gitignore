@@ -8,3 +8,7 @@
 !/assets/
 /assets/*
 !/assets/audio/
+# 測驗模式用的無字原圖（只收 pNN.png，不收 _a／_b 中繼）
+!/assets/images/
+/assets/images/*
+!/assets/images/p[0-9][0-9].png
